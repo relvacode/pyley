@@ -1,5 +1,5 @@
 import unittest
-from pyley import GraphObject
+from pyley import GraphObject, Functions
 
 
 class GizmoQueryTests(unittest.TestCase):
@@ -180,6 +180,13 @@ class GizmoQueryTests(unittest.TestCase):
         
         self.assertEqual(query, 'g.Emit({"lastName": "DOE", "age": 25, "name": "John"})')
 
+    def test_filter(self):
+        g = GraphObject()
+
+        query = g.Vertex().Filter(Functions.lt(25)).Filter(Functions.regex("John")).Filter(Functions.str("t"))
+        actual = query.build()
+
+        self.assertEqual(actual, 'g.V().Filter(lt(25)).Filter(regex("John")).Filter(str("t"))')
 
 if __name__ == '__main__':
     unittest.main()

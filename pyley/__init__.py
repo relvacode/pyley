@@ -117,7 +117,6 @@ class GraphObject(object):
     def Emit(self, data):
         return "g.Emit({0:s})".format(json.dumps(data, default=lambda o: o.__dict__))
 
-
 class _Path(_GizmoQuery):
     def __init__(self, parent):
         _GizmoQuery.__init__(self)
@@ -135,6 +134,11 @@ class _Path(_GizmoQuery):
 
     def Both(self, predicate=None, tags=None):
         self._bounds("Both", predicate, tags)
+
+        return self
+
+    def LabelContext(self, labelPath=None, tags=None):
+        self._bounds("LabelContext", labelPath, tags)
 
         return self
 
@@ -175,8 +179,18 @@ class _Path(_GizmoQuery):
 
         return self
 
+    def HasR(self, predicate, object):
+        self._put("HasR('%s', '%s')", predicate, object)
+
+        return self
+
     def Tag(self, *tags):
         self._put("Tag(%s)", json.dumps(tags))
+
+        return self
+
+    def As(self, *tags):
+        self._put("As(%s)", json.dumps(tags))
 
         return self
 
@@ -187,6 +201,11 @@ class _Path(_GizmoQuery):
 
     def Save(self, predicate, tag):
         self._put("Save('%s', '%s')", predicate, tag)
+
+        return self
+
+    def SaveR(self, predicate, tag):
+        self._put("SaveR('%s', '%s')", predicate, tag)
 
         return self
 
@@ -206,6 +225,30 @@ class _Path(_GizmoQuery):
 
         return self
 
+    def Or(self, query):
+        if not isinstance(query, _Vertex) and type(query) is not str:
+            raise Exception("Invalid parameter in or query")
+
+        self._put("Or(%s)", query)
+
+        return self
+
+    def Except(self, query):
+        if not isinstance(query, _Vertex) and type(query) is not str:
+            raise Exception("Invalid parameter in except query")
+
+        self._put("Except(%s)", query)
+
+        return self
+
+    def Difference(self, query):
+        if not isinstance(query, _Vertex) and type(query) is not str:
+            raise Exception("Invalid parameter in difference query")
+
+        self._put("Difference(%s)", query)
+
+        return self
+
     def Follow(self, query):
         if not isinstance(query, _Morphism) and type(query) is not str:
             raise Exception("Invalid parameter in follow query")
@@ -222,6 +265,52 @@ class _Path(_GizmoQuery):
 
         return self
 
+    def FollowRecursive(self, query):
+        if not isinstance(query, _Morphism) and type(query) is not str:
+            raise Exception("Invalid parameter in followrecursive query")
+
+        self._put("FollowRecursive(%s)", query)
+
+        return self
+
+    def InPredicates(self):
+        self._put("InPredicates()")
+        
+        return self
+
+    def OutPredicates(self):
+        self._put("OutPredicates()")
+
+        return self
+
+    def SaveInPredicates(self, tag):
+        self._put("SaveInPredicates(%s)", tag)
+
+        return self
+
+    def SaveOutPredicates(self, tag):
+        self._put("SaveOutPredicates(%s)", tag)
+
+        return self
+
+    def Filter(self, function):
+        if not isinstance(function, _FunctionCall) and type(function) is not str:
+            raise Exception("Invalid parameter in filter query")
+
+        self._put("Filter(%s)", function)
+
+        return self
+
+    def Labels(self):
+        self._put("Labels()")
+
+        return self
+
+    def Unique(self):
+        self._put("Unique()")
+
+        return self
+
     def build(self):
         return str(self)
 
@@ -229,6 +318,21 @@ class _Path(_GizmoQuery):
 class _Vertex(_Path):
     def All(self):
         self._put("All()")
+
+        return self
+
+    def Count(self):
+        self._put("Count()")
+
+        return self
+
+    def Skip(self, offset):
+        self._put("Skip(%d)", offset)
+
+        return self
+
+    def Limit(self, limit):
+        self._put("Limit(%d)", limit)
 
         return self
 
@@ -252,3 +356,81 @@ class _QueryDefinition(object):
             return str(self.token) % self.parameters
         else:
             return str(self.token)
+
+
+class _FunctionCall(object):
+    """
+    Emulates a javascript function call with a function name and JSON encoded function parameters
+    """
+    def __init__(self, name, *parameters):
+        self.name = name
+        self.parameters = parameters
+
+    def __str__(self):
+        return "{0:s}({1})".format(self.name, ", ".join([json.dumps(param) for param in self.parameters]))
+
+class Functions(object):
+    """
+    Contains static functions supported by the Gizmo environment
+    """
+    @staticmethod
+    def lt(value):
+        """
+        Less than comparison
+        """
+        return _FunctionCall("lt", value)
+
+    @staticmethod
+    def lte(value):
+        """
+        Less than or equals comparison
+        """
+        return _FunctionCall("lte", value)
+
+    @staticmethod
+    def gt(value):
+        """
+        Greater than comparison
+        """
+        return _FunctionCall("gt", value)
+
+    @staticmethod
+    def gte(value):
+        """
+        Greater than or equals comparison
+        """
+        return _FunctionCall("gte", value)
+
+    @staticmethod
+    def regex(pattern):
+        """
+        Regular expression match
+        """
+        return _FunctionCall("regex", pattern)
+
+    @staticmethod
+    def iri(value):
+        """
+        Convert a value into an IRI
+        """
+        return _FunctionCall("iri", value)
+
+    @staticmethod
+    def bnode(value):
+        return _FunctionCall("bnode", value)
+
+    @staticmethod
+    def raw(value):
+        return _FunctionCall("raw", value)
+
+    @staticmethod
+    def str(value):
+        return _FunctionCall("str", value)
+
+    @staticmethod
+    def lang(value, lang):
+        return _FunctionCall("lang", value, lang)
+
+    @staticmethod
+    def typed(value, typ):
+        return _FunctionCall("typed", value, typ)
